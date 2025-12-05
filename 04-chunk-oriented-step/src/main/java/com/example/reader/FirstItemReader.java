@@ -1,13 +1,10 @@
 package com.example.reader;
 
+import org.springframework.batch.item.ItemReader;
+import org.springframework.stereotype.Component;
+
 import java.util.Arrays;
 import java.util.List;
-
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.NonTransientResourceException;
-import org.springframework.batch.item.ParseException;
-import org.springframework.batch.item.UnexpectedInputException;
-import org.springframework.stereotype.Component;
 
 @Component
 public class FirstItemReader implements ItemReader<Integer> {
@@ -17,7 +14,7 @@ public class FirstItemReader implements ItemReader<Integer> {
 	int i = 0;
 
 	@Override
-	public Integer read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
+	public Integer read() {
 		System.out.println("Inside Item reader");
 
 		Integer item;
