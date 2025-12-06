@@ -4,9 +4,10 @@ import java.io.File;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -25,15 +26,16 @@ import com.example.model.StudentJson;
 import com.example.processor.FirstItemProcessor;
 import com.example.reader.FirstItemReader;
 import com.example.writer.FirstItemWriter;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 public class SampleJob {
 
 	@Autowired
-	private JobBuilderFactory jobBuilderFactory;
+	private JobRepository jobRepository;
 
 	@Autowired
-	private StepBuilderFactory stepBuilderFactory;
+	private PlatformTransactionManager transactionManager;
 	
 	@Autowired
 	private FirstItemReader firstItemReader;
@@ -49,7 +51,7 @@ public class SampleJob {
 
 	@Bean
 	public Job chunkJob() {
-		return jobBuilderFactory.get("Chunk Job")
+		return new JobBuilder("Chunk Job", jobRepository)
 				.incrementer(new RunIdIncrementer())
 				.start(firstChunkStep())
 				.build();
@@ -57,8 +59,8 @@ public class SampleJob {
 	
 	@Bean
 	public Step firstChunkStep() {
-		return stepBuilderFactory.get("First Chunk Step")
-				.<StudentCsv, StudentJson>chunk(3)
+		return new StepBuilder("First Chunk Step", jobRepository)
+				.<StudentCsv, StudentJson>chunk(3, transactionManager)
 				.reader(flatFileItemReader())
 				.processor(firstItemProcessor)
 				.writer(jsonFileItemWriter())
@@ -71,10 +73,8 @@ public class SampleJob {
 	
 	@Bean
 	public FlatFileItemReader<StudentCsv> flatFileItemReader() {
-		FlatFileItemReader<StudentCsv> flatFileItemReader = new FlatFileItemReader<StudentCsv>();
-
+		FlatFileItemReader<StudentCsv> flatFileItemReader = new FlatFileItemReader<>();
 		flatFileItemReader.setResource(new FileSystemResource(new File("students.csv")));
-
 		flatFileItemReader.setLineMapper(new DefaultLineMapper<StudentCsv>() {
 			{
 				setLineTokenizer(new DelimitedLineTokenizer() {
@@ -95,15 +95,9 @@ public class SampleJob {
 		return flatFileItemReader;
 	}
 
-	
-	
 	@Bean
 	public JsonFileItemWriter<StudentJson> jsonFileItemWriter() {
 		FileSystemResource fileSystemResource = new FileSystemResource(new File("outputFiles/students.json"));
-		
-		JsonFileItemWriter<StudentJson> jsonFileItemWriter = new JsonFileItemWriter<>(fileSystemResource, 
-						new JacksonJsonObjectMarshaller<StudentJson>());
-		
-		return jsonFileItemWriter;
+        return new JsonFileItemWriter<>(fileSystemResource, new JacksonJsonObjectMarshaller<>());
 	}
 }
