@@ -1,14 +1,12 @@
 package com.example.config;
 
-import java.io.File;
-
-import javax.sql.DataSource;
-
+import com.example.model.StudentJdbc;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
 import org.springframework.batch.item.json.JsonFileItemWriter;
@@ -19,32 +17,34 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
+import org.springframework.transaction.PlatformTransactionManager;
 
-import com.example.model.StudentJdbc;
+import javax.sql.DataSource;
+import java.io.File;
 
 @Configuration
 public class SampleJob {
 
 	@Autowired
-	private JobBuilderFactory jobBuilderFactory;
+	private JobRepository jobRepository;
 
 	@Autowired
-	private StepBuilderFactory stepBuilderFactory;
+	private PlatformTransactionManager transactionManager;
 	
 	@Autowired
 	private DataSource dataSource;
 	
 	@Bean
 	public Job chunkJob() {
-		return jobBuilderFactory.get("Chunk Job")
+		return new JobBuilder("Chunk Job", jobRepository)
 				.incrementer(new RunIdIncrementer())
 				.start(firstChunkStep())
 				.build();
 	}
 	
 	private Step firstChunkStep() {
-		return stepBuilderFactory.get("First Chunk Step")
-				.<StudentJdbc, StudentJdbc>chunk(100)
+		return new StepBuilder("First Chunk Step", jobRepository)
+				.<StudentJdbc, StudentJdbc>chunk(100, transactionManager)
 				.reader(jdbcCursorItemReader())
 				.writer(staxEventItemWriter())
 				.build();
@@ -67,9 +67,7 @@ public class SampleJob {
 	public JsonFileItemWriter<StudentJdbc> flatFileItemWriter() {
 		FileSystemResource fileSystemResource = new FileSystemResource(new File("outputFiles/students.json"));
 
-		JsonFileItemWriter<StudentJdbc> jsonFileItemWriter = new JsonFileItemWriter<>(fileSystemResource,
-				new JacksonJsonObjectMarshaller<>());
-		return jsonFileItemWriter;
+        return new JsonFileItemWriter<>(fileSystemResource, new JacksonJsonObjectMarshaller<>());
 	}
 	
 	@Bean
