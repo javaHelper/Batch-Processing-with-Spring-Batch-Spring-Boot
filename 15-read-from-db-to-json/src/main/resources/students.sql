@@ -1,11 +1,13 @@
+drop database `spring_batch` ;
+create database if not exists `spring_batch` ;
+use `spring_batch` ;
+
 CREATE TABLE `spring_batch`.`students` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `first_name` VARCHAR(45) NULL,
   `last_name` VARCHAR(45) NULL,
   `email` VARCHAR(45) NULL,
   PRIMARY KEY (`id`));
-  
-use spring_batch;   
   
 insert into students (id, first_name, last_name, email) values (1, 'Zeke', 'Bentinck', 'zbentinck0@skyrock.com');
 insert into students (id, first_name, last_name, email) values (2, 'Annmaria', 'Behning', 'abehning1@howstuffworks.com');
